@@ -540,10 +540,6 @@ This project exists to make those capabilities easier to use in a guided workflo
 
 This repository currently documents the project and source structure clearly, but final licensing should be added explicitly as a repository-level `LICENSE` file.
 
-Recommended immediate next step:
-
-- add `MIT` license text if you want this to be broadly reusable and open-source friendly
-
 ### Practical Usage Note
 
 Users should understand that:
