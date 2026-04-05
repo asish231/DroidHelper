@@ -39,6 +39,8 @@ ________               .__    .______ ___         .__
 - [Troubleshooting](#troubleshooting)
 - [Current Limitations](#current-limitations)
 - [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [Support](#support)
 - [Author and Credits](#author-and-credits)
 - [License and Usage Notes](#license-and-usage-notes)
 
@@ -358,46 +360,48 @@ adb mdns services
 
 3. Asks the user for:
    - phone IP
-   - pairing port
-   - pairing code
+   - or `PHONE_IP:PAIR_PORT`
+   - pairing code if a fresh pairing is needed
 
-4. Verifies basic network reachability:
+4. If an existing `_adb-tls-connect._tcp` endpoint is already visible for that phone, it can skip re-pairing and use the connect endpoint directly
+
+5. Verifies basic network reachability:
 
 ```bash
 ping -c 1 PHONE_IP
 ```
 
-5. Verifies the pairing port is reachable:
+6. Verifies the pairing port is reachable when a fresh pairing is needed:
 
 ```bash
 nc -vz PHONE_IP PAIR_PORT
 ```
 
-6. Performs pairing:
+7. Performs pairing when required:
 
 ```bash
 adb pair PHONE_IP:PAIR_PORT PAIR_CODE
 ```
 
-7. Looks for a connect endpoint using:
+8. Looks for a connect endpoint using:
 
 ```bash
 adb mdns services
 ```
 
-8. If a connect endpoint is found, it lets the user choose it
+9. If a connect endpoint is found, it lets the user choose it
 
-9. If no connect endpoint is found, it asks the user for the connect port manually
+10. If no connect endpoint is found, it asks the user for the connect port manually
 
-10. Connects with:
+11. Connects with:
 
 ```bash
 adb connect PHONE_IP:CONNECT_PORT
 ```
 
-11. Asks the user to choose the audio mode
+12. Asks the user to choose the audio mode
 
-12. Launches `scrcpy`
+13. Launches `scrcpy`
 
 Example final launch:
 
@@ -521,6 +525,36 @@ Planned next improvements could include:
 
 ---
 
+## Contributing
+
+Contributions are welcome.
+
+If you want to help:
+
+- read [CONTRIBUTING.md](CONTRIBUTING.md)
+- open an issue before large changes
+- keep changes focused and easy to review
+- test USB or wireless flows when your change affects connection logic
+
+Good starter contributions:
+
+- Windows-specific setup improvements
+- better error messages and recovery steps
+- packaging and release automation
+- GUI work on top of the current CLI
+- docs and troubleshooting improvements
+
+---
+
+## Support
+
+For usage help, bug reports, and feature requests:
+
+- open a GitHub issue in this repository
+- read [SUPPORT.md](SUPPORT.md) for support boundaries and response expectations
+
+---
+
 ## Author and Credits
 
 **Author**: Asish Kumar Sharma  
@@ -538,7 +572,7 @@ This project exists to make those capabilities easier to use in a guided workflo
 
 ## License and Usage Notes
 
-This repository currently documents the project and source structure clearly, but final licensing should be added explicitly as a repository-level `LICENSE` file.
+This repository is licensed under the [MIT License](LICENSE).
 
 ### Practical Usage Note
 
