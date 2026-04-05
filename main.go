@@ -172,17 +172,40 @@ func handleWireless(reader *bufio.Reader) error {
 	}
 
 	fmt.Println()
-	ip, err := promptNonEmpty(reader, "Enter the phone IP address shown on the phone")
+	phoneAddr, err := promptNonEmpty(reader, "Enter the phone IP address shown on the phone (or IP:pairingPort)")
 	if err != nil {
 		return err
 	}
-	if parsed := net.ParseIP(ip); parsed == nil {
-		return fmt.Errorf("invalid IP address: %s", ip)
+	ip, pairPort, err := parsePhoneAddress(phoneAddr)
+	if err != nil {
+		return err
 	}
 
-	pairPort, err := promptNonEmpty(reader, "Enter the pairing port")
-	if err != nil {
-		return err
+	connectServices, _ := listConnectServices(ip)
+	if len(connectServices) > 0 {
+		fmt.Println()
+		fmt.Println("adb wireless connect services already visible for this phone:")
+		printMDNSServices(connectServices)
+
+		useExisting, err := askYesNo(reader, "Use one of these connect endpoints without pairing again?")
+		if err != nil {
+			return err
+		}
+		if useExisting {
+			idx, err := chooseOption(reader, "Choose the connect endpoint to use:", endpoints(connectServices))
+			if err != nil {
+				return err
+			}
+			return connectAndLaunch(reader, connectServices[idx].Endpoint)
+		}
+	}
+
+	if pairPort == "" {
+		fmt.Println("Tip: the pairing port is temporary and changes often. It is not the same as the later connect port.")
+		pairPort, err = promptNonEmpty(reader, "Enter the pairing port")
+		if err != nil {
+			return err
+		}
 	}
 	pairCode, err := promptNonEmpty(reader, "Enter the pairing code")
 	if err != nil {
@@ -210,6 +233,10 @@ func handleWireless(reader *bufio.Reader) error {
 		return err
 	}
 
+	return connectAndLaunch(reader, connectEndpoint)
+}
+
+func connectAndLaunch(reader *bufio.Reader, connectEndpoint string) error {
 	fmt.Printf("Connecting to %s...\n", connectEndpoint)
 	if err := runInteractive("adb", "connect", connectEndpoint); err != nil {
 		return fmt.Errorf("adb connect failed: %w", err)
@@ -226,17 +253,23 @@ func handleWireless(reader *bufio.Reader) error {
 	return runInteractive("scrcpy", args...)
 }
 
+func parsePhoneAddress(input string) (string, string, error) {
+	if parsed := net.ParseIP(input); parsed != nil {
+		return input, "", nil
+	}
+
+	host, port, err := net.SplitHostPort(input)
+	if err == nil && net.ParseIP(host) != nil && port != "" {
+		return host, port, nil
+	}
+
+	return "", "", fmt.Errorf("invalid IP address: %s", input)
+}
+
 func discoverConnectEndpoint(reader *bufio.Reader, ip string) (string, error) {
 	fmt.Println()
 	fmt.Println("Looking for adb wireless connect services...")
-	services, _ := listMDNSServices()
-
-	var matches []mdnsService
-	for _, svc := range services {
-		if svc.Service == "_adb-tls-connect._tcp" && strings.HasPrefix(svc.Endpoint, ip+":") {
-			matches = append(matches, svc)
-		}
-	}
+	matches, _ := listConnectServices(ip)
 
 	if len(matches) > 0 {
 		fmt.Println("Found connect service(s):")
@@ -254,6 +287,21 @@ func discoverConnectEndpoint(reader *bufio.Reader, ip string) (string, error) {
 		return "", err
 	}
 	return net.JoinHostPort(ip, port), nil
+}
+
+func listConnectServices(ip string) ([]mdnsService, error) {
+	services, err := listMDNSServices()
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []mdnsService
+	for _, svc := range services {
+		if svc.Service == "_adb-tls-connect._tcp" && strings.HasPrefix(svc.Endpoint, ip+":") {
+			matches = append(matches, svc)
+		}
+	}
+	return matches, nil
 }
 
 func chooseADBDevice(reader *bufio.Reader, devices []device) (device, error) {
